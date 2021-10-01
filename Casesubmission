@@ -1,0 +1,64 @@
+library(readxl)
+ACCS_Case_Study_Data <- read_excel("S:/CASE STUDy/ACCS Case Study Data.xlsx", 
+                                  col_types = c("date", "date", "text", 
+                                     "text", "text", "text", "text", "numeric", "numeric", "numeric", "numeric", "numeric"))
+Data<-ACCS_Case_Study_Data
+summary(Data)
+Data
+ecom <- Data[,c(-2,-4:-7, -10)]
+ecom
+head(ecom)
+summary(ecom)
+library(dplyr)
+analysis_date <- max(Data$'Order Date')
+analysis_date
+rfm_df <- ecom %>% group_by(`Customer Name`) %>% summarise(Recency = as.numeric(analysis_date- max(`Order Date`)), Frequency = n(), Monetary = sum(Quantity))
+rfm_df
+nrow(rfm_df)
+library(ggplot2)
+library(gridExtra)
+r <- ggplot(rfm_df) +geom_density(aes(x= Recency))
+f <- ggplot(rfm_df) +geom_density(aes(x = Frequency))
+m <- ggplot(rfm_df) +geom_density(aes(x = Monetary))
+summary(rfm_df)
+barplot(rfm_df$Recency)
+y<-max(rfm_df$Recency)
+po <- which(rfm_df==y,arr.ind = T)
+po
+rfm_df
+a=rfm_df[po[1],1:4]
+a
+grid.arrange(r, f, m, nrow = 3)
+rfm_df$R_score <- 0
+rfm_df$R_score[rfm_df$Recency >= 33.00] <- 1
+rfm_df$R_score[rfm_df$Recency >= 16.00 & rfm_df$Recency <33.00] <- 2
+rfm_df$R_score[rfm_df$Recency >= 6.00 & rfm_df$Recency <16.00] <- 3
+rfm_df$R_score[rfm_df$Recency < 6.00] <- 4
+rfm_df$F_score<- 0
+rfm_df$F_score[rfm_df$Frequency >=74.00] <- 4
+rfm_df$F_score[rfm_df$Frequency <74.00 & rfm_df$Frequency >= 64.00] <- 3
+rfm_df$F_score[rfm_df$Frequency <64.00 & rfm_df$Frequency >= 55] <- 2
+rfm_df$F_score[rfm_df$Frequency <55] <- 1
+rfm_df$M_score <- 0
+rfm_df$M_score[rfm_df$Monetary >= 256] <- 4
+rfm_df$M_score[rfm_df$Monetary < 256 & rfm_df$Monetary >= 222] <- 3
+rfm_df$M_score[rfm_df$Monetary >= 187.8 & rfm_df$Monetary < 222] <- 2
+rfm_df$M_score[rfm_df$Monetary <187.8] <- 1
+rfm_df
+rfm_df <- rfm_df %>% mutate(RFM_score = 100 *R_score +10 * F_score + M_score)
+rfm_df
+rfm_df$Segment <- "0"
+rfm_df
+rfm_df$Segment[which(rfm_df$RFM_score %in% c(444,434,443, 344, 442, 244, 424, 441  ))] <-"Loyalists"
+rfm_df$Segment[which(rfm_df$RFM_score %in% c(332,333,342, 343, 334, 412,413,414,431,432,441,421,422,423, 424, 433 ))] <- "Potn.Loyalists"
+rfm_df$Segment[which(rfm_df$RFM_score %in% c(233,234, 241,311, 312, 313,314,321,322,323,324, 331,  341))] <- "Promising"
+rfm_df$Segment[which(rfm_df$RFM_score %in% c(124, 133, 134, 142, 143, 144, 214,224,234, 242, 243, 232 ))] <- "Hesitant"
+rfm_df$Segment[which(rfm_df$RFM_score %in% c(122, 123,131 ,132, 141, 212, 213, 221, 222, 223, 231 ))] <- "Need attention"
+rfm_df$Segment[which(rfm_df$RFM_score %in% c(111, 112, 113, 114, 121, 131, 211, 311, 411 ))] <-"Detractors"
+rfm_df$Segment
+j=table(rfm_df$Segment)
+j
+barplot(j)
+dotchart(j, labels = lbls, main = "Dot chart for Customer Segments", explode = 0.1)
+write.csv(rfm_df, file = "output.csv")
+
